@@ -1,8 +1,10 @@
+import time
+
 import cv2
 import os
 import numpy as np
 
-resize = 100
+resize = 25
 y_s_img = 150
 x_s_img = 100
 
@@ -17,20 +19,48 @@ def all_pics():
 def r_img(img):
     return cv2.imread(img)
 
+def check_img(name):
+    img = cv2.imread(f"./pictures/{name}")
+    l = os.listdir("./pictures/calc")
+    if name in l:
+        return None
+    if img is None:
+        return None
+    elif 0.6 < (img.shape[1]/img.shape[0]) < 0.70:
+        return img
+    elif img.shape[1]/img.shape[0] > 1: # dann horizontal
+        img2 = cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE)
+        dim = img2.shape
+        v = dim[1] * (2 / 3)
+        x = (dim[0] - v) / 2
+        x_s = v + x
+    else:
+        dim = img.shape
+        v = dim[1] * (2 / 3)
+        x = (dim[0] - v) / 2
+        x_s = v + x
+    return img[0:-1, int(round(x)):int(round(x_s))]
+
 def brightness(img): # value between 0 and 255
-    count = 0
     g_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     br = np.mean(g_img)
     return br
 
 def get_p_list():
-    return os.listdir('./pictures')
+    plist_o = os.listdir('./pictures')
+    for i in range(len(plist_o)):
+        img = check_img(plist_o[i])
+        if img is not None:
+            cv2.imwrite(f"./pictures/calc/{plist_o[i]}", img)
+            print(f"scaling pictures: {(i+1)}/{len(plist_o)} ({plist_o[i]})")
+    plist_o = os.listdir('./pictures/calc')
+    return plist_o
 
 def sort_p_list(plist):
     plist_val = np.zeros(len(plist), dtype=int)
     plist_val2 = np.zeros(len(plist), dtype=int)
     for i in range(len(plist)):
-        rea = r_img(f"./pictures/{plist[i]}")
+        rea = r_img(f"./pictures/calc/{plist[i]}")
         plist_val[i] = brightness(rea)
         print(f"calculating mean brightness: {i+1}/{(len(plist))}")
     for i in range(len(plist_val)):
@@ -54,7 +84,7 @@ def fill(img, plist, oimg):
         for fx in range(s_x):
             # choose picture
             br = oimg[fy][fx]
-            img_n = cv2.imread(f"./pictures/{plist[int(round(br/step))]}")
+            img_n = cv2.imread(f"./pictures/calc/{plist[int(round(br/step))]}")
             img_n = cv2.resize(img_n, (x_s_img, y_s_img))
             for y in range(y_s_img):
                 for x in range(x_s_img):
